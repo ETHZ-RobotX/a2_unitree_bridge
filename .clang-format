@@ -1,0 +1,45 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+
+# Braces on same line (Attach), not new line
+BreakBeforeBraces: Attach
+
+# Indentation
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+IndentPPDirectives: BeforeHash  # indent #ifdef contents
+
+# Namespace formatting
+NamespaceIndentation: None
+CompactNamespaces: false
+
+# Short constructs — keep simple bodies inline
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Inline
+
+# Line length & wrapping
+ColumnLimit: 100
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBinaryOperators: NonAssignment
+
+# Include ordering
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+
+# Alignment
+AlignConsecutiveMacros: Consecutive
+AlignConsecutiveAssignments: None
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 1
+
+# Pointer/reference style
+PointerAlignment: Left
+
+# Macro bodies — don't reformat macro definitions
+SkipMacroDefinitionBody: true
