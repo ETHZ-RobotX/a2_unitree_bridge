@@ -27,6 +27,7 @@ A2SimBridge::A2SimBridge(rclcpp::Node* node) {
   camera_topic_.init(node);
   front_lidar_topic_.init(node);
   rear_lidar_topic_.init(node);
+  registered_scan_topic_.init(node);
 }
 #endif
 
