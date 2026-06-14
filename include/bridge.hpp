@@ -51,7 +51,6 @@ private:
   SimCameraTopic camera_topic_;
   FrontLidarTopic front_lidar_topic_;
   RearLidarTopic rear_lidar_topic_;
-  SimRegisteredScanTopic registered_scan_topic_;
 
   // Written by LowStateTopic callback, read by SportStateTopic callback.
   // This is to maintain consistency between the state estimation and raw sensor timestamps

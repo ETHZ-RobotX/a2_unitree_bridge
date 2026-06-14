@@ -237,79 +237,73 @@ struct SimCameraTopic {
   }
 };
 
-// ─── SimRegisteredScanTopic ───────────────────────────────────────────────────
-// Subscribes to /mujoco/front_lidar (ROS, sensor frame), transforms to the map
-// frame using TF, adds an 'intensity' field alias so terrain_analysis can parse
-// the cloud as PointXYZI, and publishes /registered_scan for the nav stack.
-struct SimRegisteredScanTopic {
-  static constexpr const char* sub_topic = "/mujoco/front_lidar";
-  static constexpr const char* pub_topic = "/registered_scan";
-
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub;
-  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub;
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
-
-  void init(rclcpp::Node* node) {
-    tf_buffer = std::make_shared<tf2_ros::Buffer>(node->get_clock());
-    tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, node);
-    pub = node->create_publisher<sensor_msgs::msg::PointCloud2>(pub_topic, kDefaultRosQoS);
-    sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(
-      sub_topic, kDefaultRosQoS,
-      [this, node](const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-        try {
-          // Query 25ms in the past — TF updates at ~50 Hz so this is always available.
-          rclcpp::Time t_query =
-            rclcpp::Time(msg->header.stamp) - rclcpp::Duration::from_seconds(0.025);
-          auto transform = tf_buffer->lookupTransform("map", msg->header.frame_id, t_query);
-
-          sensor_msgs::msg::PointCloud2 cloud_map;
-          tf2::doTransform(*msg, cloud_map, transform);
-          cloud_map.header.stamp    = msg->header.stamp;
-          cloud_map.header.frame_id = "map";
-
-          // Add 'intensity' alias pointing at the 'dist' field so terrain_analysis
-          // can parse the cloud as PointXYZI without warnings.
-          uint32_t dist_offset = 12;
-          for (const auto& f : cloud_map.fields) {
-            if (f.name == "dist") { dist_offset = f.offset; break; }
-          }
-          sensor_msgs::msg::PointField intensity;
-          intensity.name     = "intensity";
-          intensity.offset   = dist_offset;
-          intensity.datatype = sensor_msgs::msg::PointField::FLOAT32;
-          intensity.count    = 1;
-          cloud_map.fields.push_back(intensity);
-
-          pub->publish(cloud_map);
-        } catch (const tf2::TransformException& e) {
-          RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 2000,
-                               "Registered scan TF lookup failed: %s", e.what());
-        }
-      });
-  }
-};
-
 // ─── SimLidarTopic ────────────────────────────────────────────────────────────
-// Templated to allow multiple lidar scans raw topic published as a ROS topic.
+// Subscribes to a MuJoCo lidar DDS topic and publishes the raw cloud as a ROS
+// topic. Optionally (pass with_registered_scan=true for the front lidar) also
+// transforms the cloud into the map frame and publishes /registered_scan for
+// the navigation stack — all in the same DDS callback, no extra ROS hop.
 
 template <typename Type>
 struct SimLidarTopic {
   using PointCloudDds_t = sensor_msgs::msg::dds_::PointCloud2_;
   using PointCloudRos_t = sensor_msgs::msg::PointCloud2;
-  static constexpr double kTfLagSec = 0.025;
 
   unitree::robot::ChannelSubscriberPtr<PointCloudDds_t> sub;
   rclcpp::Publisher<PointCloudRos_t>::SharedPtr raw_pub;
 
-  void init(rclcpp::Node* node) {
+  // Populated only when with_registered_scan=true
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+  rclcpp::Publisher<PointCloudRos_t>::SharedPtr registered_scan_pub;
+
+  void init(rclcpp::Node* node, bool with_registered_scan = false) {
     raw_pub = node->create_publisher<PointCloudRos_t>(Type::ros_topic, kDefaultRosQoS);
+
+    if (with_registered_scan) {
+      tf_buffer = std::make_shared<tf2_ros::Buffer>(node->get_clock());
+      tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, node);
+      registered_scan_pub =
+        node->create_publisher<PointCloudRos_t>("/registered_scan", kDefaultRosQoS);
+    }
+
     sub.reset(new unitree::robot::ChannelSubscriber<PointCloudDds_t>(Type::dds_topic));
     sub->InitChannel(
       [this, node](const void* msg) {
         auto state = *static_cast<const PointCloudDds_t*>(msg);
         PointCloudRos_t raw_cloud = converters::pointcloud(state);
         raw_pub->publish(raw_cloud);
+
+        if (!registered_scan_pub) return;
+
+        try {
+          // Query 25ms in the past — TF updates at ~50 Hz so this is always available.
+          rclcpp::Time t_query =
+            rclcpp::Time(raw_cloud.header.stamp) - rclcpp::Duration::from_seconds(0.025);
+          auto transform = tf_buffer->lookupTransform("map", raw_cloud.header.frame_id, t_query);
+
+          PointCloudRos_t cloud_map;
+          tf2::doTransform(raw_cloud, cloud_map, transform);
+          cloud_map.header.stamp    = raw_cloud.header.stamp;
+          cloud_map.header.frame_id = "map";
+
+          // Add 'intensity' alias for the 'dist' field so terrain_analysis can
+          // parse the cloud as PointXYZI without warnings. No data copy.
+          uint32_t dist_offset = 12;
+          for (const auto& f : cloud_map.fields) {
+            if (f.name == "dist") { dist_offset = f.offset; break; }
+          }
+          PointCloudRos_t::_fields_type::value_type intensity;
+          intensity.name     = "intensity";
+          intensity.offset   = dist_offset;
+          intensity.datatype = sensor_msgs::msg::PointField::FLOAT32;
+          intensity.count    = 1;
+          cloud_map.fields.push_back(intensity);
+
+          registered_scan_pub->publish(cloud_map);
+        } catch (const tf2::TransformException& e) {
+          RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 2000,
+                               "Registered scan TF lookup failed: %s", e.what());
+        }
       },
       kDefaultDdsQueueLen);
   }
