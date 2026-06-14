@@ -25,9 +25,8 @@ A2SimBridge::A2SimBridge(rclcpp::Node* node) {
   low_state_topic_.init(node, cached_quat_, cached_ang_vel_, &cached_stamp_, &cache_mutex_);
   sport_state_topic_.init(node, cached_quat_, cached_ang_vel_, &cached_stamp_, &cache_mutex_);
   camera_topic_.init(node);
-  front_lidar_topic_.init(node);
+  front_lidar_topic_.init(node, /*with_registered_scan=*/true);
   rear_lidar_topic_.init(node);
-  registered_scan_topic_.init(node);
 }
 #endif
 
