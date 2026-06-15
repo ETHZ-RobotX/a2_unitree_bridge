@@ -83,7 +83,7 @@ struct SportStateTopic : IngressType {
   }
 };
 
-}
-}
+}  // namespace bridge
+}  // namespace a2
 
 #endif

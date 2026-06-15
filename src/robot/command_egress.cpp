@@ -32,8 +32,7 @@ void A2CommandPublisher::setupTimers() {
   timer_ = node_->create_timer(kControlPeriod, [this]() { controlLoop(); });
 }
 
-void A2CommandPublisher::modeCallback(
-  const a2_interfaces::msg::OperatingMode::SharedPtr msg) {
+void A2CommandPublisher::modeCallback(const a2_interfaces::msg::OperatingMode::SharedPtr msg) {
   std::lock_guard<std::mutex> lock(state_mutex_);
   if (!mode_fsm_.mode_transition(static_cast<OpMode>(msg->mode))) {
     RCLCPP_WARN(node_->get_logger(), "Invalid mode transition to %d", msg->mode);
@@ -42,8 +41,7 @@ void A2CommandPublisher::modeCallback(
   RCLCPP_INFO(node_->get_logger(), "Mode Requested: %d", msg->mode);
 }
 
-void A2CommandPublisher::cmdVelCallback(
-  const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
+void A2CommandPublisher::cmdVelCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
   int64_t age_ns = (node_->now() - rclcpp::Time(msg->header.stamp)).nanoseconds();
   if (age_ns > kCmdVelMaxAgeNs) {
     RCLCPP_WARN(node_->get_logger(), "Dropping stale cmd_vel (age %.0f ms)", age_ns / 1e6);

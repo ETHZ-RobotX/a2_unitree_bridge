@@ -21,7 +21,7 @@ struct IngressType {
   IngressType& operator=(const IngressType&) = delete;
 };
 
-} // namespace bridge
-} // namespace a2
+}  // namespace bridge
+}  // namespace a2
 
-#endif // A2_BRIDGE_INGRESS_BASE_H_
+#endif  // A2_BRIDGE_INGRESS_BASE_H_

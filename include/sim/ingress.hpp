@@ -25,15 +25,14 @@
 #include <unitree/robot/channel/channel_subscriber.hpp>
 
 #include "builtin_interfaces/msg/time.hpp"
-#include "sim/converters.hpp"
 #include "rosgraph_msgs/msg/clock.hpp"
+#include "sim/converters.hpp"
 
 namespace a2 {
 namespace bridge {
 
 static const rclcpp::QoS kDefaultRosQoS{10};
 static const int64_t kDefaultDdsQueueLen{1};
-
 
 // ─── LowStateTopic ───────────────────────────────────────────────────────────
 // Publishes sim_clock from mujoco
@@ -236,7 +235,8 @@ struct SimLidarTopic : IngressType {
         PointCloudRos_t raw_cloud = converters::pointcloud(state);
         raw_pub->publish(raw_cloud);
 
-        if (!registered_scan_pub) return;
+        if (!registered_scan_pub)
+          return;
 
         try {
           // Query 25ms in the past — TF updates at ~50 Hz so this is always available.
@@ -246,20 +246,23 @@ struct SimLidarTopic : IngressType {
 
           PointCloudRos_t cloud_map;
           tf2::doTransform(raw_cloud, cloud_map, transform);
-          cloud_map.header.stamp    = raw_cloud.header.stamp;
+          cloud_map.header.stamp = raw_cloud.header.stamp;
           cloud_map.header.frame_id = "map";
 
           // Add 'intensity' alias for the 'dist' field so terrain_analysis can
           // parse the cloud as PointXYZI without warnings. No data copy.
           uint32_t dist_offset = 12;
           for (const auto& f : cloud_map.fields) {
-            if (f.name == "dist") { dist_offset = f.offset; break; }
+            if (f.name == "dist") {
+              dist_offset = f.offset;
+              break;
+            }
           }
           PointCloudRos_t::_fields_type::value_type intensity;
-          intensity.name     = "intensity";
-          intensity.offset   = dist_offset;
+          intensity.name = "intensity";
+          intensity.offset = dist_offset;
           intensity.datatype = sensor_msgs::msg::PointField::FLOAT32;
-          intensity.count    = 1;
+          intensity.count = 1;
           cloud_map.fields.push_back(intensity);
 
           registered_scan_pub->publish(cloud_map);

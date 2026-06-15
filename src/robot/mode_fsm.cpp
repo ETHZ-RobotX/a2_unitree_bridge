@@ -21,12 +21,12 @@ static constexpr std::array<std::pair<OpMode, OpMode>, 9> kValidTransitions = {{
 }};
 
 ModeFsm::ModeFsm(float max_vel_x, float max_vel_y, float max_yaw_rate)
-  : mode_(OpMode::STAND_DOWN),
-    mode_changed_(true),  // ensures initial fire of the control loop
-    cmd_vel_({0.0f, 0.0f, 0.0f}),
-    max_vel_x_(max_vel_x),
-    max_vel_y_(max_vel_y),
-    max_yaw_rate_(max_yaw_rate) {
+    : mode_(OpMode::STAND_DOWN),
+      mode_changed_(true),  // ensures initial fire of the control loop
+      cmd_vel_({0.0f, 0.0f, 0.0f}),
+      max_vel_x_(max_vel_x),
+      max_vel_y_(max_vel_y),
+      max_yaw_rate_(max_yaw_rate) {
   if (max_vel_x_ < 0 || max_vel_y_ < 0 || max_yaw_rate_ < 0) {
     throw std::invalid_argument("Max velocities and yaw rate must be non-negative");
   }
@@ -35,10 +35,9 @@ ModeFsm::ModeFsm(float max_vel_x, float max_vel_y, float max_yaw_rate)
 bool ModeFsm::mode_transition(OpMode next) {
   if (mode_ == next)
     return true;
-  bool allowed =
-    (next == OpMode::ESTOP) || (next == OpMode::FREE) ||
-    std::find(kValidTransitions.begin(), kValidTransitions.end(), std::pair{mode_, next}) !=
-      kValidTransitions.end();
+  bool allowed = (next == OpMode::ESTOP) || (next == OpMode::FREE) ||
+                 std::find(kValidTransitions.begin(), kValidTransitions.end(),
+                           std::pair{mode_, next}) != kValidTransitions.end();
   if (!allowed)
     return false;
   mode_ = next;

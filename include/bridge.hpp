@@ -4,15 +4,15 @@
 #include <rclcpp/node.hpp>
 
 #ifndef A2_MODE_SIM
-#include "robot/ingress.hpp"
 #include "robot/command_egress.hpp"
+#include "robot/ingress.hpp"
 #endif
 
 #ifdef A2_MODE_SIM
 #include <builtin_interfaces/msg/time.hpp>
 #include <mutex>
-#include "sim/ingress.hpp"
 #include "sim/egress.hpp"
+#include "sim/ingress.hpp"
 #endif
 
 namespace a2 {
