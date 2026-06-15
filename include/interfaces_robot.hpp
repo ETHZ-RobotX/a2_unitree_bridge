@@ -49,7 +49,7 @@ struct LowStateTopic {
         state = *static_cast<const LowStateDds_t*>(msg);
         builtin_interfaces::msg::Time stamp = node->get_clock()->now();
         rclcpp::Time t(stamp);
-        if ((t - last_pub).seconds() < 0.005)
+        if ((t - last_pub).seconds() < 0.004)
           return;
         last_pub = t;
         joint_pub->publish(converters::joint_state(state, stamp));
