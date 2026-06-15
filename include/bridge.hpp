@@ -5,6 +5,10 @@
 #include <unitree/robot/a2/sport/sport_client.hpp>
 #include "interfaces.hpp"
 
+#ifndef A2_MODE_SIM
+#include "a2_sport_client.hpp"
+#endif
+
 #ifdef A2_MODE_SIM
 #include <builtin_interfaces/msg/time.hpp>
 #include <mutex>
@@ -27,7 +31,7 @@ public:
   explicit A2RobotBridge(rclcpp::Node* node);
 
 private:
-  unitree::robot::a2::SportClient sport_client_;
+  A2SportClientManager sport_client_mgr_;
   LowStateTopic low_state_topic_;
   SportStateTopic sport_state_topic_;
 };

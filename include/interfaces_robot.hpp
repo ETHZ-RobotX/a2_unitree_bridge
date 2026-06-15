@@ -18,8 +18,8 @@
 namespace a2 {
 namespace bridge {
 
-static const rclcpp::QoS kDefaultRosQoS{10};
-static const int64_t kDefaultDdsQueueLen{1};
+inline const rclcpp::QoS kDefaultRosQoS{10};
+inline constexpr int64_t kDefaultDdsQueueLen{1};
 
 // ─── LowStateTopic ───────────────────────────────────────────────────────────
 // Throttled to 200 Hz. Publishes /a2/joint_states and /a2/imu/data.

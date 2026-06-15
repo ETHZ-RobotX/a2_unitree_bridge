@@ -26,12 +26,16 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(a2_interfaces REQUIRED)
 
 install(DIRECTORY launch/
     DESTINATION share/${PROJECT_NAME}/launch
 )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/sport_client
+)
 
 # Shared RPATH helper — keeps the Unitree SDK libs resolvable at runtime.
 function(apply_unitree_rpath target)
@@ -48,9 +52,11 @@ endfunction()
 add_executable(a2_bridge_robot
   src/node.cpp
   src/bridge.cpp
+  src/sport_client/mode_fsm.cpp
+  src/sport_client/a2_sport_client.cpp
 )
 ament_target_dependencies(a2_bridge_robot
-  rclcpp ament_index_cpp unitree_hg unitree_go std_msgs sensor_msgs
+  rclcpp ament_index_cpp unitree_hg unitree_go std_msgs sensor_msgs a2_interfaces
 )
 apply_unitree_rpath(a2_bridge_robot)
 
@@ -58,11 +64,12 @@ apply_unitree_rpath(a2_bridge_robot)
 add_executable(a2_bridge_sim
   src/node.cpp
   src/bridge.cpp
+  src/sport_client/mode_fsm.cpp
 )
 target_compile_definitions(a2_bridge_sim PRIVATE A2_MODE_SIM)
 ament_target_dependencies(a2_bridge_sim
   rclcpp ament_index_cpp unitree_go std_msgs sensor_msgs
-  nav_msgs geometry_msgs tf2_ros tf2_sensor_msgs tf2
+  nav_msgs geometry_msgs tf2_ros tf2_sensor_msgs tf2 a2_interfaces
 )
 apply_unitree_rpath(a2_bridge_sim)
 
