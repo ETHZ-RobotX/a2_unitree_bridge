@@ -1,31 +1,36 @@
-#ifndef A2_BRIDGE_SPORT_CLIENT_H_
-#define A2_BRIDGE_SPORT_CLIENT_H_
+#ifndef A2_BRIDGE_ROBOT_CMD_EGRESS_H_
+#define A2_BRIDGE_ROBOT_CMD_EGRESS_H_
 
+#include <mutex>
 #include <rclcpp/rclcpp.hpp>
-#include <rclcpp/subscription.hpp>
 #include <unitree/robot/a2/sport/sport_client.hpp>
-
-#include "mode_fsm.hpp"
 #include "a2_interfaces/msg/operating_mode.hpp"
+#include "common/egress.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "robot/mode_fsm.hpp"
 
 namespace a2 {
 namespace bridge {
 
 /*
- * Custom Sport Client Wrapper on the A2 Sport Client
- * Ingests ROS messages and sends unitree Sport Client SDK commands
+ * Wraps the Unitree SportClient SDK. Subscribes to /a2/mode and /cmd_vel,
+ * runs a 50 Hz control loop that translates the current OpMode into SDK calls.
  *
- * This keeps the feature set low and incorporates safety modes
+ * This keeps the set of possible SDK calls low and incorporates safety modes
  * to ensure unwanted behavior from being executed on the robot
  */
-class A2SportClientManager {
+class A2CommandPublisher : public EgressType {
 public:
-  explicit A2SportClientManager();
+  A2CommandPublisher() : mode_fsm_(kMaxVelX, kMaxVelY, kMaxYawRate) {}
 
-  void init(rclcpp::Node *node);
+  void init(rclcpp::Node* node);
 
 private:
+  // TODO: expose via ROS params
+  static constexpr float kMaxVelX{0.15f};
+  static constexpr float kMaxVelY{0.1f};
+  static constexpr float kMaxYawRate{0.1f};
+
   // Initialization
   void setupSubscribers();
   void setupTimers();
@@ -39,7 +44,7 @@ private:
 
 private:
   // Node for loggers
-  rclcpp::Node *node_;
+  rclcpp::Node* node_;
 
   // Sport Client Specific
   unitree::robot::a2::SportClient sport_client_;
@@ -54,8 +59,7 @@ private:
   std::mutex state_mutex_;
 };
 
-}
-}
+}  // namespace bridge
+}  // namespace a2
 
-
-#endif /* A2_BRIDGE_SPORT_CLIENT_H_ */
+#endif /* A2_BRIDGE_ROBOT_CMD_EGRESS_H_ */

@@ -3,8 +3,8 @@
  * that exposes motor_state() / imu_state() with the same field names.
  * sport_mode() uses unitree_go::SportModeState_ for both sim and robot.
  */
-#ifndef CONVERTERS_H_
-#define CONVERTERS_H_
+#ifndef A2_BRIDGE_COMMON_CONVERTERS_H_
+#define A2_BRIDGE_COMMON_CONVERTERS_H_
 
 #include <builtin_interfaces/msg/time.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -16,7 +16,7 @@ namespace a2 {
 namespace bridge {
 namespace converters {
 
-static const std::vector<std::string> kJointNames = {
+inline const std::vector<std::string> kJointNames = {
   "FR_hip_joint",   "FR_thigh_joint", "FR_calf_joint",  "FL_hip_joint",
   "FL_thigh_joint", "FL_calf_joint",  "RR_hip_joint",   "RR_thigh_joint",
   "RR_calf_joint",  "RL_hip_joint",   "RL_thigh_joint", "RL_calf_joint"};
@@ -64,4 +64,4 @@ inline std_msgs::msg::UInt8 sport_mode(const unitree_go::msg::dds_::SportModeSta
 }  // namespace bridge
 }  // namespace a2
 
-#endif /* CONVERTERS_H_ */
+#endif /* A2_BRIDGE_COMMON_CONVERTERS_H_ */

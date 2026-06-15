@@ -1,10 +1,5 @@
-/*
- * Robot topic structs.
- * LowState uses unitree_hg (HG firmware). Publishes joints + IMU + sport mode.
- * Odometry / localisation comes from DLIO, not this bridge.
- */
-#ifndef INTERFACES_ROBOT_H_
-#define INTERFACES_ROBOT_H_
+#ifndef A2_BRIDGE_ROBOT_INGRESS_H_
+#define A2_BRIDGE_ROBOT_INGRESS_H_
 
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
@@ -13,7 +8,8 @@
 #include <std_msgs/msg/u_int8.hpp>
 #include <unitree/idl/hg/LowState_.hpp>
 #include <unitree/robot/channel/channel_subscriber.hpp>
-#include "converters.hpp"
+#include "common/converters.hpp"
+#include "common/ingress.hpp"
 
 namespace a2 {
 namespace bridge {
@@ -24,7 +20,7 @@ inline constexpr int64_t kDefaultDdsQueueLen{1};
 // ─── LowStateTopic ───────────────────────────────────────────────────────────
 // Throttled to 200 Hz. Publishes /a2/joint_states and /a2/imu/data.
 
-struct LowStateTopic {
+struct LowStateTopic : IngressType {
   using LowStateDds_t = unitree_hg::msg::dds_::LowState_;
   using JointState_t = sensor_msgs::msg::JointState;
   using ImuState_t = sensor_msgs::msg::Imu;
@@ -49,7 +45,7 @@ struct LowStateTopic {
         state = *static_cast<const LowStateDds_t*>(msg);
         builtin_interfaces::msg::Time stamp = node->get_clock()->now();
         rclcpp::Time t(stamp);
-        if ((t - last_pub).seconds() < 0.004)
+        if ((t - last_pub).seconds() < 0.005)
           return;
         last_pub = t;
         joint_pub->publish(converters::joint_state(state, stamp));
@@ -62,7 +58,7 @@ struct LowStateTopic {
 // ─── SportStateTopic ─────────────────────────────────────────────────────────
 // Throttled to 50 Hz. Publishes /a2/sport_mode as UInt8.
 
-struct SportStateTopic {
+struct SportStateTopic : IngressType {
   using DdsTopic_t = unitree_go::msg::dds_::SportModeState_;
   static constexpr const char* dds_topic = "rt/sportmodestate";
 
@@ -87,7 +83,7 @@ struct SportStateTopic {
   }
 };
 
-}  // namespace bridge
-}  // namespace a2
+}
+}
 
-#endif /* INTERFACES_ROBOT_H_ */
+#endif

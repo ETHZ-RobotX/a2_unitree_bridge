@@ -2,16 +2,17 @@
 #define UNITREE_BRIDGE_H_
 
 #include <rclcpp/node.hpp>
-#include <unitree/robot/a2/sport/sport_client.hpp>
-#include "interfaces.hpp"
 
 #ifndef A2_MODE_SIM
-#include "a2_sport_client.hpp"
+#include "robot/ingress.hpp"
+#include "robot/command_egress.hpp"
 #endif
 
 #ifdef A2_MODE_SIM
 #include <builtin_interfaces/msg/time.hpp>
 #include <mutex>
+#include "sim/ingress.hpp"
+#include "sim/egress.hpp"
 #endif
 
 namespace a2 {
@@ -31,7 +32,7 @@ public:
   explicit A2RobotBridge(rclcpp::Node* node);
 
 private:
-  A2SportClientManager sport_client_mgr_;
+  A2CommandPublisher command_egress_;
   LowStateTopic low_state_topic_;
   SportStateTopic sport_state_topic_;
 };
@@ -46,10 +47,10 @@ public:
   explicit A2SimBridge(rclcpp::Node* node);
 
 private:
-  // Publishers
+  // Egress
   LowCmdTopic low_cmd_pub_topic_;
 
-  // Subscribers
+  // Ingress
   LowStateTopic low_state_topic_;
   SportStateTopic sport_state_topic_;
   SimCameraTopic camera_topic_;

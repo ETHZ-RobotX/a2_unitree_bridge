@@ -1,6 +1,12 @@
+#ifndef A2_BRIDGE_MODE_FSM_H_
+#define A2_BRIDGE_MODE_FSM_H_
+
+#include <array>
 #include <cstdint>
 #include <utility>
-#include <array>
+
+namespace a2 {
+namespace bridge {
 
 enum class OpMode : uint8_t {
   ESTOP = 0,          // Joints disabled (most emergency)
@@ -11,32 +17,32 @@ enum class OpMode : uint8_t {
   FREE = 5,           // Stops the robot but does not disable anything
 };
 
-// thread unsafe -> Caller needs to manage locks
+// thread unsafe — caller must manage locks
 class ModeFsm {
 public:
-  explicit ModeFsm(const float max_vel_x, const float max_vel_y, const float max_yaw_rate);
+  explicit ModeFsm(float max_vel_x, float max_vel_y, float max_yaw_rate);
 
   bool mode_transition(OpMode next);
-
   void reset_cmd_vel();
 
-  // TODO: Do clipping here or rejections?
-  bool set_cmd_vel(const float x, const float y, const float yaw);
+  // TODO: clipping here or rejection?
+  bool set_cmd_vel(float x, float y, float yaw);
 
-  // Read by control loop. Once read, change is reset
+  // Read by control loop. Once read, changed flag resets.
   std::pair<OpMode, bool> get_mode();
-
   std::array<float, 3> get_cmd_vel();
 
 private:
-  // Modes
   OpMode mode_;
   bool mode_changed_;
 
-  // Velocities
   std::array<float, 3> cmd_vel_;
   const float max_vel_x_;
   const float max_vel_y_;
   const float max_yaw_rate_;
-
 };
+
+}  // namespace bridge
+}  // namespace a2
+
+#endif /* A2_BRIDGE_MODE_FSM_H_ */

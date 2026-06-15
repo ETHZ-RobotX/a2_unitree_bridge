@@ -34,7 +34,6 @@ install(DIRECTORY launch/
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/sport_client
 )
 
 # Shared RPATH helper — keeps the Unitree SDK libs resolvable at runtime.
@@ -52,11 +51,11 @@ endfunction()
 add_executable(a2_bridge_robot
   src/node.cpp
   src/bridge.cpp
-  src/sport_client/mode_fsm.cpp
-  src/sport_client/a2_sport_client.cpp
+  src/robot/command_egress.cpp
+  src/robot/mode_fsm.cpp
 )
 ament_target_dependencies(a2_bridge_robot
-  rclcpp ament_index_cpp unitree_hg unitree_go std_msgs sensor_msgs a2_interfaces
+  rclcpp ament_index_cpp unitree_hg unitree_go std_msgs sensor_msgs a2_interfaces geometry_msgs
 )
 apply_unitree_rpath(a2_bridge_robot)
 
@@ -64,7 +63,6 @@ apply_unitree_rpath(a2_bridge_robot)
 add_executable(a2_bridge_sim
   src/node.cpp
   src/bridge.cpp
-  src/sport_client/mode_fsm.cpp
 )
 target_compile_definitions(a2_bridge_sim PRIVATE A2_MODE_SIM)
 ament_target_dependencies(a2_bridge_sim
