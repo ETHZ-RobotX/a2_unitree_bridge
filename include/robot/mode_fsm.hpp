@@ -33,7 +33,12 @@ public:
   std::array<float, 3> get_cmd_vel();
 
 private:
+  bool free_reset_allowed(OpMode next);
+
+private:
   OpMode mode_;
+  // Used when robot gets into free to understand which state it's allowed to return to
+  OpMode prev_mode_;
   bool mode_changed_;
 
   std::array<float, 3> cmd_vel_;

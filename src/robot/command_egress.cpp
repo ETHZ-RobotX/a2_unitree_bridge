@@ -12,7 +12,7 @@ namespace bridge {
 
 void A2CommandPublisher::init(rclcpp::Node* node) {
   node_ = node;
-  sport_client_.SetTimeout(25.0f);
+  sport_client_.SetTimeout(5.0f);
   sport_client_.Init();
   setupSubscribers();
   setupTimers();

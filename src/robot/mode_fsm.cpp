@@ -10,7 +10,6 @@ static constexpr std::array<std::pair<OpMode, OpMode>, 9> kValidTransitions = {{
   // Reset behaviors
   {OpMode::ESTOP, OpMode::STAND_DOWN},
   {OpMode::FREE, OpMode::STAND_DOWN},
-  {OpMode::FREE, OpMode::VELOCITY_MOVE},
   // Normal behaviors
   {OpMode::STAND_DOWN, OpMode::STAND_UP},
   {OpMode::STAND_UP, OpMode::BALANCE_STAND},
@@ -22,6 +21,7 @@ static constexpr std::array<std::pair<OpMode, OpMode>, 9> kValidTransitions = {{
 
 ModeFsm::ModeFsm(float max_vel_x, float max_vel_y, float max_yaw_rate)
     : mode_(OpMode::STAND_DOWN),
+      prev_mode_(OpMode::STAND_DOWN),
       mode_changed_(true),  // ensures initial fire of the control loop
       cmd_vel_({0.0f, 0.0f, 0.0f}),
       max_vel_x_(max_vel_x),
@@ -35,15 +35,23 @@ ModeFsm::ModeFsm(float max_vel_x, float max_vel_y, float max_yaw_rate)
 bool ModeFsm::mode_transition(OpMode next) {
   if (mode_ == next)
     return true;
-  bool allowed = (next == OpMode::ESTOP) || (next == OpMode::FREE) ||
+  bool allowed = (next == OpMode::ESTOP) || (next == OpMode::FREE) || free_reset_allowed(next) ||
                  std::find(kValidTransitions.begin(), kValidTransitions.end(),
                            std::pair{mode_, next}) != kValidTransitions.end();
   if (!allowed)
     return false;
+  prev_mode_ = mode_;
   mode_ = next;
   mode_changed_ = true;
   reset_cmd_vel();
   return true;
+}
+
+bool ModeFsm::free_reset_allowed(OpMode next) {
+  if (mode_ != OpMode::FREE) {
+    return false;
+  }
+  return next == prev_mode_;
 }
 
 inline void ModeFsm::reset_cmd_vel() {
