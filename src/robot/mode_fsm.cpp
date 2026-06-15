@@ -47,7 +47,7 @@ bool ModeFsm::mode_transition(OpMode next) {
   return true;
 }
 
-void ModeFsm::reset_cmd_vel() {
+inline void ModeFsm::reset_cmd_vel() {
   cmd_vel_.fill(0.0f);
 }
 
@@ -69,7 +69,9 @@ std::pair<OpMode, bool> ModeFsm::get_mode() {
 }
 
 std::array<float, 3> ModeFsm::get_cmd_vel() {
-  return cmd_vel_;
+  auto rval = cmd_vel_;
+  reset_cmd_vel();
+  return rval;
 }
 
 }  // namespace bridge

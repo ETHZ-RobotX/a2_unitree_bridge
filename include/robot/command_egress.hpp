@@ -6,7 +6,7 @@
 #include <unitree/robot/a2/sport/sport_client.hpp>
 #include "a2_interfaces/msg/operating_mode.hpp"
 #include "common/egress.hpp"
-#include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "robot/mode_fsm.hpp"
 
 namespace a2 {
@@ -30,6 +30,7 @@ private:
   static constexpr float kMaxVelX{0.15f};
   static constexpr float kMaxVelY{0.1f};
   static constexpr float kMaxYawRate{0.1f};
+  static constexpr int64_t kCmdVelMaxAgeNs{500'000'000LL};  // 500 ms
 
   // Initialization
   void setupSubscribers();
@@ -37,7 +38,7 @@ private:
 
   // Callback Functions
   void modeCallback(const a2_interfaces::msg::OperatingMode::SharedPtr msg);
-  void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
+  void cmdVelCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
   // Control
   void controlLoop();
@@ -51,7 +52,7 @@ private:
 
   // ROS
   rclcpp::Subscription<a2_interfaces::msg::OperatingMode>::SharedPtr mode_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   // State - Need to be accessed via mutex

@@ -23,9 +23,9 @@ void A2CommandPublisher::setupSubscribers() {
     "/a2/mode", rclcpp::QoS(10),
     [this](const a2_interfaces::msg::OperatingMode::SharedPtr msg) { modeCallback(msg); });
 
-  cmd_vel_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
-    "/cmd_vel", rclcpp::QoS(10),
-    [this](const geometry_msgs::msg::Twist::SharedPtr msg) { cmdVelCallback(msg); });
+  cmd_vel_sub_ = node_->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/cmd_vel", rclcpp::QoS(1),
+    [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) { cmdVelCallback(msg); });
 }
 
 void A2CommandPublisher::setupTimers() {
@@ -42,9 +42,15 @@ void A2CommandPublisher::modeCallback(
   RCLCPP_INFO(node_->get_logger(), "Mode Requested: %d", msg->mode);
 }
 
-void A2CommandPublisher::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
+void A2CommandPublisher::cmdVelCallback(
+  const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
+  int64_t age_ns = (node_->now() - rclcpp::Time(msg->header.stamp)).nanoseconds();
+  if (age_ns > kCmdVelMaxAgeNs) {
+    RCLCPP_WARN(node_->get_logger(), "Dropping stale cmd_vel (age %.0f ms)", age_ns / 1e6);
+    return;
+  }
   std::lock_guard<std::mutex> lock(state_mutex_);
-  if (!mode_fsm_.set_cmd_vel(msg->linear.x, msg->linear.y, msg->angular.z)) {
+  if (!mode_fsm_.set_cmd_vel(msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z)) {
     RCLCPP_WARN(node_->get_logger(), "Incompatible op mode, zeroing velocity");
   }
 }
