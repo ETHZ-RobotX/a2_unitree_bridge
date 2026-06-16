@@ -5,9 +5,9 @@ namespace bridge {
 
 #ifndef A2_MODE_SIM
 A2RobotBridge::A2RobotBridge(rclcpp::Node* node) {
-  // sport_client_.SetTimeout(25.0f);
-  // sport_client_.Init();
   RCLCPP_DEBUG(node->get_logger(), "Initialize Robot Bridge");
+  command_egress_.init(node);
+
   low_state_topic_.init(node);
   sport_state_topic_.init(node);
 }

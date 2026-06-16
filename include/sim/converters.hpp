@@ -2,8 +2,8 @@
  * Sim-specific converters (MuJoCo / unitree_go LowState).
  * Extends the shared converters with odometry, camera, and tick timestamp.
  */
-#ifndef CONVERTERS_SIM_H_
-#define CONVERTERS_SIM_H_
+#ifndef A2_BRIDGE_SIM_CONVERTERS_H_
+#define A2_BRIDGE_SIM_CONVERTERS_H_
 
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
@@ -12,7 +12,7 @@
 #include <unitree/idl/go2/LowCmd_.hpp>
 #include <unitree/idl/ros2/PointCloud2_.hpp>
 #include <unitree/idl/ros2/Time_.hpp>
-#include "converters.hpp"
+#include "common/converters.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "unitree_go/msg/low_cmd.hpp"
 
@@ -146,4 +146,4 @@ inline sensor_msgs::msg::PointCloud2 pointcloud(const sensor_msgs::msg::dds_::Po
 }  // namespace bridge
 }  // namespace a2
 
-#endif /* CONVERTERS_SIM_H_ */
+#endif /* A2_BRIDGE_SIM_CONVERTERS_H_ */

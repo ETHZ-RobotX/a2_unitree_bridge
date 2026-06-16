@@ -1,12 +1,7 @@
-/*
- * Sim topic structs (MuJoCo + Unitree DDS).
- * LowState uses unitree_go (Go2 format from MuJoCo). Publishes joints + IMU +
- * ground-truth odometry + TF + camera image + registered lidar scan.
- */
-#ifndef INTERFACES_SIM_H_
-#define INTERFACES_SIM_H_
+#ifndef A2_BRIDGE_SIM_INGRESS_H_
+#define A2_BRIDGE_SIM_INGRESS_H_
 
-#include <unitree/dds_wrapper/common/Publisher.h>
+#include "common/ingress.hpp"
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -18,7 +13,6 @@
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/qos.hpp>
-#include <rclcpp/subscription.hpp>
 #include <rclcpp/time.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
@@ -26,51 +20,19 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <tf2_sensor_msgs/tf2_sensor_msgs.hpp>
-#include <unitree/common/thread/recurrent_thread.hpp>
-#include <unitree/common/thread/thread.hpp>
-#include <unitree/common/thread/thread_decl.hpp>
-#include <unitree/idl/go2/LowCmd_.hpp>
 #include <unitree/idl/go2/LowState_.hpp>
 #include <unitree/idl/ros2/PointCloud2_.hpp>
-#include <unitree/robot/channel/channel_publisher.hpp>
 #include <unitree/robot/channel/channel_subscriber.hpp>
-#include <unitree_go/msg/low_cmd.hpp>
 
 #include "builtin_interfaces/msg/time.hpp"
-#include "converters_sim.hpp"
 #include "rosgraph_msgs/msg/clock.hpp"
-#include "sensor_msgs/msg/imu.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
-#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "sim/converters.hpp"
 
 namespace a2 {
 namespace bridge {
 
 static const rclcpp::QoS kDefaultRosQoS{10};
-static const rclcpp::QoS kLowCmdRosQoS{50};
 static const int64_t kDefaultDdsQueueLen{1};
-
-// ─── LowCmdTopic Publisher ───────────────────────────────────────────────────
-// ROS publisher sends lowcmd ros messages, convert and publish as lowcmd DDS
-struct LowCmdTopic {
-  using LowCmdDds_t = unitree_go::msg::dds_::LowCmd_;
-  using LowCmdRos_t = unitree_go::msg::LowCmd;
-  static constexpr const char* dds_topic = "rt/lowcmd";
-  static constexpr const char* ros_topic = "/lowcmd";
-
-  unitree::robot::ChannelPublisherPtr<LowCmdDds_t> pub;
-  rclcpp::Subscription<LowCmdRos_t>::SharedPtr sub;
-
-  void init(rclcpp::Node* node, const rclcpp::SubscriptionOptions& sub_options) {
-    pub.reset(new unitree::robot::ChannelPublisher<LowCmdDds_t>(dds_topic));
-    pub->InitChannel();
-
-    sub = node->create_subscription<LowCmdRos_t>(
-      ros_topic, kLowCmdRosQoS,
-      [this](const LowCmdRos_t::SharedPtr msg) { pub->Write(converters::lowcmd_ros_to_dds(*msg)); },
-      sub_options);
-  }
-};
 
 // ─── LowStateTopic ───────────────────────────────────────────────────────────
 // Publishes sim_clock from mujoco
@@ -79,7 +41,7 @@ struct LowCmdTopic {
 // can use an authoritative timestamp and orientation from the same LowState
 // tick.
 
-struct LowStateTopic {
+struct LowStateTopic : IngressType {
   using LowStateDds_t = unitree_go::msg::dds_::LowState_;
   using JointState_t = sensor_msgs::msg::JointState;
   using ImuState_t = sensor_msgs::msg::Imu;
@@ -142,7 +104,7 @@ struct LowStateTopic {
 // Publishes /odom, /state_estimation, /a2/sport_mode. Broadcasts map→base_link
 // TF.
 
-struct SportStateTopic {
+struct SportStateTopic : IngressType {
   using DdsTopic_t = unitree_go::msg::dds_::SportModeState_;
   static constexpr const char* dds_topic = "rt/sportmodestate";
   static constexpr const char* sport_mode_topic = "/a2/sport_mode";
@@ -213,7 +175,7 @@ struct SportStateTopic {
 // ─── SimCameraTopic ───────────────────────────────────────────────────────────
 // MuJoCo encodes the front camera RGB image inside a PointCloud2 DDS message.
 // Converts to sensor_msgs::Image + publishes hardcoded CameraInfo intrinsics.
-struct SimCameraTopic {
+struct SimCameraTopic : IngressType {
   using PointCloudDds_t = sensor_msgs::msg::dds_::PointCloud2_;
   static constexpr const char* dds_topic = "rt/mujoco/front_camera_pointcloud";
   static constexpr const char* image_pub_topic = "/camera/image_raw";
@@ -244,7 +206,7 @@ struct SimCameraTopic {
 // the navigation stack — all in the same DDS callback, no extra ROS hop.
 
 template <typename Type>
-struct SimLidarTopic {
+struct SimLidarTopic : IngressType {
   using PointCloudDds_t = sensor_msgs::msg::dds_::PointCloud2_;
   using PointCloudRos_t = sensor_msgs::msg::PointCloud2;
 
@@ -273,7 +235,8 @@ struct SimLidarTopic {
         PointCloudRos_t raw_cloud = converters::pointcloud(state);
         raw_pub->publish(raw_cloud);
 
-        if (!registered_scan_pub) return;
+        if (!registered_scan_pub)
+          return;
 
         try {
           // Query 25ms in the past — TF updates at ~50 Hz so this is always available.
@@ -283,20 +246,23 @@ struct SimLidarTopic {
 
           PointCloudRos_t cloud_map;
           tf2::doTransform(raw_cloud, cloud_map, transform);
-          cloud_map.header.stamp    = raw_cloud.header.stamp;
+          cloud_map.header.stamp = raw_cloud.header.stamp;
           cloud_map.header.frame_id = "map";
 
           // Add 'intensity' alias for the 'dist' field so terrain_analysis can
           // parse the cloud as PointXYZI without warnings. No data copy.
           uint32_t dist_offset = 12;
           for (const auto& f : cloud_map.fields) {
-            if (f.name == "dist") { dist_offset = f.offset; break; }
+            if (f.name == "dist") {
+              dist_offset = f.offset;
+              break;
+            }
           }
           PointCloudRos_t::_fields_type::value_type intensity;
-          intensity.name     = "intensity";
-          intensity.offset   = dist_offset;
+          intensity.name = "intensity";
+          intensity.offset = dist_offset;
           intensity.datatype = sensor_msgs::msg::PointField::FLOAT32;
-          intensity.count    = 1;
+          intensity.count = 1;
           cloud_map.fields.push_back(intensity);
 
           registered_scan_pub->publish(cloud_map);
@@ -324,4 +290,4 @@ using RearLidarTopic = SimLidarTopic<RearLidarTraits>;
 }  // namespace bridge
 }  // namespace a2
 
-#endif /* INTERFACES_SIM_H_ */
+#endif /* A2_BRIDGE_SIM_INGRESS_H_ */
