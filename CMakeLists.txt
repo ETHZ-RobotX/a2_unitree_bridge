@@ -27,6 +27,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(a2_interfaces REQUIRED)
+find_package(a2_utils REQUIRED)
 
 install(DIRECTORY launch/
     DESTINATION share/${PROJECT_NAME}/launch
@@ -52,11 +53,12 @@ add_executable(a2_bridge_robot
   src/node.cpp
   src/bridge.cpp
   src/robot/command_egress.cpp
-  src/robot/mode_fsm.cpp
 )
 ament_target_dependencies(a2_bridge_robot
   rclcpp ament_index_cpp unitree_hg unitree_go std_msgs sensor_msgs a2_interfaces geometry_msgs
+  a2_utils
 )
+target_link_libraries(a2_bridge_robot ${a2_utils_LIBRARIES})
 apply_unitree_rpath(a2_bridge_robot)
 
 # ── Sim bridge ────────────────────────────────────────────────────────────────
