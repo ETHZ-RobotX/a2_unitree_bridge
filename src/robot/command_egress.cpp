@@ -1,95 +1,54 @@
 #include "robot/command_egress.hpp"
 
-#include <mutex>
+#include <chrono>
 #include <rclcpp/logging.hpp>
 
 namespace {
-constexpr std::chrono::milliseconds kControlPeriod{20};  // 50 Hz
+// TODO: expose via ROS params
+constexpr float kMaxVelX{0.15f};
+constexpr float kMaxVelY{0.1f};
+constexpr float kMaxYawRate{0.1f};
+constexpr std::chrono::milliseconds kControlPeriod{20};
+constexpr int64_t kCmdVelMaxAgeNs{500'000'000LL};  // 500 ms
+
 }  // namespace
 
 namespace a2 {
 namespace bridge {
 
+A2CommandPublisher::A2CommandPublisher()
+    : SafeVelocityRosInterface(kMaxVelX, kMaxVelY, kMaxYawRate, kControlPeriod, kCmdVelMaxAgeNs) {}
+
 void A2CommandPublisher::init(rclcpp::Node* node) {
-  node_ = node;
   sport_client_.SetTimeout(5.0f);
   sport_client_.Init();
-  setupSubscribers();
-  setupTimers();
+  SafeVelocityRosInterface::init(node);
 }
 
-void A2CommandPublisher::setupSubscribers() {
-  mode_sub_ = node_->create_subscription<a2_interfaces::msg::OperatingMode>(
-    "/a2/mode", rclcpp::QoS(10),
-    [this](const a2_interfaces::msg::OperatingMode::SharedPtr msg) { modeCallback(msg); });
-
-  cmd_vel_sub_ = node_->create_subscription<geometry_msgs::msg::TwistStamped>(
-    "/cmd_vel", rclcpp::QoS(1),
-    [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) { cmdVelCallback(msg); });
-}
-
-void A2CommandPublisher::setupTimers() {
-  timer_ = node_->create_timer(kControlPeriod, [this]() { controlLoop(); });
-}
-
-void A2CommandPublisher::modeCallback(const a2_interfaces::msg::OperatingMode::SharedPtr msg) {
-  std::lock_guard<std::mutex> lock(state_mutex_);
-  if (!mode_fsm_.mode_transition(static_cast<OpMode>(msg->mode))) {
-    RCLCPP_WARN(node_->get_logger(), "Invalid mode transition to %d", msg->mode);
-    return;
-  }
-  RCLCPP_INFO(node_->get_logger(), "Mode Requested: %d", msg->mode);
-}
-
-void A2CommandPublisher::cmdVelCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
-  int64_t age_ns = (node_->now() - rclcpp::Time(msg->header.stamp)).nanoseconds();
-  if (age_ns > kCmdVelMaxAgeNs) {
-    RCLCPP_WARN(node_->get_logger(), "Dropping stale cmd_vel (age %.0f ms)", age_ns / 1e6);
-    return;
-  }
-  std::lock_guard<std::mutex> lock(state_mutex_);
-  if (!mode_fsm_.set_cmd_vel(msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z)) {
-    RCLCPP_WARN(node_->get_logger(), "Incompatible op mode, zeroing velocity");
-  }
-}
-
-void A2CommandPublisher::controlLoop() {
-  OpMode req_mode;
-  std::array<float, 3> req_vel;
-  bool mode_changed = false;
-  {
-    std::lock_guard<std::mutex> lock(state_mutex_);
-    std::tie(req_mode, mode_changed) = mode_fsm_.get_mode();
-    req_vel = mode_fsm_.get_cmd_vel();
-  }
-
-  if (req_mode != OpMode::VELOCITY_MOVE && !mode_changed) {
-    // Nothing changed when not in velocity move, so noop
-    return;
-  }
-
-  switch (req_mode) {
-    case OpMode::ESTOP:
+void A2CommandPublisher::onControl(utils::OpMode mode, bool mode_changed,
+                                   std::array<float, 3> vel) {
+  switch (mode) {
+    case utils::OpMode::ESTOP:
       RCLCPP_DEBUG(node_->get_logger(), "Mode: ESTOP/DAMP");
       sport_client_.Damp();
       break;
-    case OpMode::STAND_DOWN:
+    case utils::OpMode::STAND_DOWN:
       RCLCPP_DEBUG(node_->get_logger(), "Mode: STAND_DOWN");
       sport_client_.StandDown();
       break;
-    case OpMode::STAND_UP:
+    case utils::OpMode::STAND_UP:
       RCLCPP_DEBUG(node_->get_logger(), "Mode: STAND_UP");
       sport_client_.StandUp();
       break;
-    case OpMode::BALANCE_STAND:
+    case utils::OpMode::BALANCE_STAND:
       RCLCPP_DEBUG(node_->get_logger(), "Mode: BALANCE_STAND");
       sport_client_.BalanceStand();
       break;
-    case OpMode::VELOCITY_MOVE:
+    case utils::OpMode::VELOCITY_MOVE:
       RCLCPP_DEBUG(node_->get_logger(), "Mode: VELOCITY_MOVE");
-      sport_client_.Move(req_vel[0], req_vel[1], req_vel[2]);
+      sport_client_.Move(vel[0], vel[1], vel[2]);
       break;
-    case OpMode::FREE:
+    case utils::OpMode::FREE:
       RCLCPP_DEBUG(node_->get_logger(), "Mode: FREE");
       sport_client_.StopMove();
       break;
