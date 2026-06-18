@@ -27,9 +27,9 @@ public:
 
 private:
   // TODO: expose via ROS params
-  static constexpr float kMaxVelX{0.15f};
-  static constexpr float kMaxVelY{0.1f};
-  static constexpr float kMaxYawRate{0.1f};
+  static constexpr float kMaxVelX{1.0f};
+  static constexpr float kMaxVelY{1.0f};
+  static constexpr float kMaxYawRate{1.0f};
   static constexpr int64_t kCmdVelMaxAgeNs{500'000'000LL};  // 500 ms
 
   // Initialization

@@ -4,7 +4,7 @@
 #include <rclcpp/logging.hpp>
 
 namespace {
-constexpr std::chrono::milliseconds kControlPeriod{20};  // 50 Hz
+constexpr std::chrono::milliseconds kControlPeriod{5};  // 50 Hz
 }  // namespace
 
 namespace a2 {

@@ -77,7 +77,7 @@ std::pair<OpMode, bool> ModeFsm::get_mode() {
 
 std::array<float, 3> ModeFsm::get_cmd_vel() {
   auto rval = cmd_vel_;
-  reset_cmd_vel();
+  // reset_cmd_vel();
   return rval;
 }
 
