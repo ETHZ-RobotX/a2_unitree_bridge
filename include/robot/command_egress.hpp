@@ -27,11 +27,11 @@ protected:
 
 private:
   unitree::robot::a2::SportClient sport_client_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr debug_vel_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr debug_hz_pub_;
-  // 0=ESTOP 1=STAND_DOWN 2=STAND_UP 3=BALANCE_STAND 4=VELOCITY_MOVE 5=FREE
-  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr debug_mode_pub_;
-  rclcpp::Time last_vel_time_;
+  // rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr debug_vel_pub_;
+  // rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr debug_hz_pub_;
+  // // 0=ESTOP 1=STAND_DOWN 2=STAND_UP 3=BALANCE_STAND 4=VELOCITY_MOVE 5=FREE
+  // rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr debug_mode_pub_;
+  // rclcpp::Time last_vel_time_;
 };
 
 }  // namespace bridge
