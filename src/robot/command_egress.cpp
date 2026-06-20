@@ -5,7 +5,7 @@
 
 namespace {
 // TODO: expose via ROS params
-constexpr float kMaxVelX{1.5f}; // m/s
+constexpr float kMaxVelX{2.0f}; // m/s
 constexpr float kMaxVelY{1.0f}; // m/s
 constexpr float kMaxYawRate{2.0f}; // rad/s?
 constexpr std::chrono::milliseconds kControlPeriod{1}; // 25 Hz
