@@ -34,8 +34,8 @@ ros2 launch a2_unitree_bridge robot.launch.py
 | `/a2/sport_mode` | `std_msgs/UInt8` | 50 Hz | Current sport mode enum value |
 | `/camera/image_raw` | `sensor_msgs/Image` | DDS rate | Front camera RGB decoded from PointCloud2 DDS |
 | `/camera/camera_info` | `sensor_msgs/CameraInfo` | DDS rate | Hardcoded intrinsics, published with each image |
-| `/mujoco/front_lidar` | `sensor_msgs/PointCloud2` | DDS rate | Raw front lidar scan |
-| `/mujoco/rear_lidar` | `sensor_msgs/PointCloud2` | DDS rate | Raw rear lidar scan |
+| `/front_lidar/points` | `sensor_msgs/PointCloud2` | DDS rate | Raw front lidar scan |
+| `/rear_lidar/points` | `sensor_msgs/PointCloud2` | DDS rate | Raw rear lidar scan |
 | `/lowcmd` (subscribed) | `unitree_go/LowCmd` | — | Receives low-level joint commands and forwards to DDS |
 
 **TF:** `map → base_link` broadcast at 50 Hz from SportModeState ground-truth position.
