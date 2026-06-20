@@ -59,10 +59,15 @@ struct LowStateTopic : IngressType {
   rclcpp::Publisher<ClockState_t>::SharedPtr clock_pub;
   rclcpp::Time last_pub{0, 0, RCL_ROS_TIME};
 
+  rclcpp::Publisher<ImuState_t>::SharedPtr front_lidar_imu_pub;
+  float prev_gyro_[3] = {0, 0, 0};
+  rclcpp::Time prev_imu_time_{0, 0, RCL_ROS_TIME};
+
   void init(rclcpp::Node* node, float* cached_quat, float* cached_ang_vel,
             builtin_interfaces::msg::Time* cached_stamp, std::mutex* cache_mutex) {
     joint_pub = node->create_publisher<JointState_t>(joint_states_topic, kDefaultRosQoS);
     imu_pub = node->create_publisher<ImuState_t>(imu_topic, kDefaultRosQoS);
+    front_lidar_imu_pub = node->create_publisher<ImuState_t>("/front_lidar/imu", kDefaultRosQoS);
     clock_pub = node->create_publisher<ClockState_t>(clock_topic, kDefaultRosQoS);
 
     sub.reset(new unitree::robot::ChannelSubscriber<LowStateDds_t>(dds_topic));
@@ -94,6 +99,8 @@ struct LowStateTopic : IngressType {
 
         joint_pub->publish(converters::joint_state(state, stamp));
         imu_pub->publish(converters::imu(state, stamp));
+        front_lidar_imu_pub->publish(
+          converters::front_lidar_imu(state, stamp, prev_gyro_, prev_imu_time_, t));
       },
       kDefaultDdsQueueLen);
   }
@@ -118,9 +125,11 @@ struct SportStateTopic : IngressType {
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr state_est_pub;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
   rclcpp::Time last_pub{0, 0, RCL_ROS_TIME};
+  bool publish_odom_ = true;
 
   void init(rclcpp::Node* node, const float* cached_quat, const float* cached_ang_vel,
             const builtin_interfaces::msg::Time* cached_stamp, std::mutex* cache_mutex) {
+    node->get_parameter_or("publish_odom", publish_odom_, true);
     tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(node);
     mode_pub = node->create_publisher<std_msgs::msg::UInt8>(sport_mode_topic, kDefaultRosQoS);
     odom_pub = node->create_publisher<nav_msgs::msg::Odometry>(odom_topic, kDefaultRosQoS);
@@ -132,8 +141,6 @@ struct SportStateTopic : IngressType {
       [this, cached_quat, cached_ang_vel, cached_stamp, cache_mutex](const void* msg) {
         state = *static_cast<const DdsTopic_t*>(msg);
 
-        // Copy cache under lock to avoid data race with LowStateTopic's DDS
-        // thread.
         builtin_interfaces::msg::Time stamp;
         float quat[4];
         float ang_vel[3];
@@ -154,10 +161,13 @@ struct SportStateTopic : IngressType {
           return;
         last_pub = t;
 
+        mode_pub->publish(converters::sport_mode(state));
+
+        if (!publish_odom_) return;
+
         auto odom = converters::odometry(state, quat, ang_vel, stamp);
         odom_pub->publish(odom);
         state_est_pub->publish(odom);
-        mode_pub->publish(converters::sport_mode(state));
 
         geometry_msgs::msg::TransformStamped tf;
         tf.header = odom.header;
@@ -277,13 +287,13 @@ struct SimLidarTopic : IngressType {
 
 struct FrontLidarTraits {
   static constexpr const char* dds_topic = "rt/mujoco/front_lidar";
-  static constexpr const char* ros_topic = "/mujoco/front_lidar";
+  static constexpr const char* ros_topic = "/front_lidar/points";
 };
 using FrontLidarTopic = SimLidarTopic<FrontLidarTraits>;
 
 struct RearLidarTraits {
   static constexpr const char* dds_topic = "rt/mujoco/rear_lidar";
-  static constexpr const char* ros_topic = "/mujoco/rear_lidar";
+  static constexpr const char* ros_topic = "/rear_lidar/points";
 };
 using RearLidarTopic = SimLidarTopic<RearLidarTraits>;
 

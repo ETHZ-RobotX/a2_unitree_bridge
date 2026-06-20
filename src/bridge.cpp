@@ -20,12 +20,15 @@ A2SimBridge::A2SimBridge(rclcpp::Node* node) {
   sub_reentrant_options.callback_group =
     node->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
+  bool publish_odom = true;
+  node->get_parameter_or("publish_odom", publish_odom, true);
+
   low_cmd_pub_topic_.init(node, sub_reentrant_options);
 
   low_state_topic_.init(node, cached_quat_, cached_ang_vel_, &cached_stamp_, &cache_mutex_);
   sport_state_topic_.init(node, cached_quat_, cached_ang_vel_, &cached_stamp_, &cache_mutex_);
   camera_topic_.init(node);
-  front_lidar_topic_.init(node, /*with_registered_scan=*/true);
+  front_lidar_topic_.init(node, /*with_registered_scan=*/publish_odom);
   rear_lidar_topic_.init(node);
 }
 #endif
