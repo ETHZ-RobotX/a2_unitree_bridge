@@ -5,10 +5,10 @@
 
 namespace {
 // TODO: expose via ROS params
-constexpr float kMaxVelX{0.8f}; // m/s
-constexpr float kMaxVelY{0.5f}; // m/s
-constexpr float kMaxYawRate{1.0f}; // rad/s?
-constexpr std::chrono::milliseconds kControlPeriod{1}; // 1000 Hz
+constexpr float kMaxVelX{2.0f}; // m/s
+constexpr float kMaxVelY{1.0f}; // m/s
+constexpr float kMaxYawRate{2.0f}; // rad/s?
+constexpr std::chrono::milliseconds kControlPeriod{1}; // 25 Hz
 constexpr int64_t kCmdVelMaxAgeNs{500'000'000LL};  // 500 ms
 
 }  // namespace
