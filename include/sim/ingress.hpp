@@ -6,6 +6,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+#include <camera_info_manager/camera_info_manager.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <mutex>
 #include <nav_msgs/msg/odometry.hpp>
@@ -184,26 +185,45 @@ struct SportStateTopic : IngressType {
 
 // ─── SimCameraTopic ───────────────────────────────────────────────────────────
 // MuJoCo encodes the front camera RGB image inside a PointCloud2 DDS message.
-// Converts to sensor_msgs::Image + publishes hardcoded CameraInfo intrinsics.
+// Converts to sensor_msgs::Image + publishes CameraInfo intrinsics loaded from
+// a2_description/config/camera_info_sim.yaml (the sim counterpart of the real
+// robot's camera_info_real.yaml).
 struct SimCameraTopic : IngressType {
   using PointCloudDds_t = sensor_msgs::msg::dds_::PointCloud2_;
   static constexpr const char* dds_topic = "rt/mujoco/front_camera_pointcloud";
   static constexpr const char* image_pub_topic = "/camera/image_raw";
   static constexpr const char* info_pub_topic = "/camera/camera_info";
+  static constexpr const char* camera_info_url =
+    "package://a2_description/config/camera_info_sim.yaml";
+  static constexpr const char* optical_frame = "front_camera_optical_frame";
 
   unitree::robot::ChannelSubscriberPtr<PointCloudDds_t> sub;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info_pub;
+  std::shared_ptr<camera_info_manager::CameraInfoManager> cinfo_mgr;
+  sensor_msgs::msg::CameraInfo cinfo;  // cached intrinsics, stamped per frame
 
   void init(rclcpp::Node* node) {
     image_pub = node->create_publisher<sensor_msgs::msg::Image>(image_pub_topic, kDefaultRosQoS);
     info_pub = node->create_publisher<sensor_msgs::msg::CameraInfo>(info_pub_topic, kDefaultRosQoS);
+
+    // Load the sim intrinsics once; only the timestamp changes per frame.
+    cinfo_mgr = std::make_shared<camera_info_manager::CameraInfoManager>(node, "front_camera");
+    if (!cinfo_mgr->loadCameraInfo(camera_info_url)) {
+      RCLCPP_WARN(node->get_logger(),
+                  "Failed to load sim camera_info from %s; publishing empty intrinsics",
+                  camera_info_url);
+    }
+    cinfo = cinfo_mgr->getCameraInfo();
+    cinfo.header.frame_id = optical_frame;
+
     sub.reset(new unitree::robot::ChannelSubscriber<PointCloudDds_t>(dds_topic));
     sub->InitChannel(
       [this](const void* msg) {
         auto state = *static_cast<const PointCloudDds_t*>(msg);
         image_pub->publish(converters::camera_image(state));
-        info_pub->publish(converters::camera_info(state.header().stamp()));
+        cinfo.header.stamp = converters::stamp(state.header().stamp());
+        info_pub->publish(cinfo);
       },
       kDefaultDdsQueueLen);
   }

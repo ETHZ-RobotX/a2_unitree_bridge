@@ -94,31 +94,9 @@ inline sensor_msgs::msg::Image camera_image(const sensor_msgs::msg::dds_::PointC
   return ros_msg;
 }
 
-// Hardcoded intrinsics: fx=fy=301.78 from VFOV=77deg at 480px height.
-inline sensor_msgs::msg::CameraInfo camera_info(const builtin_interfaces::msg::dds_::Time_& msg) {
-  // Focal lengths derived from A2 camera spec: VFOV=77deg at 480px height.
-  // MuJoCo uses fovy=77 with square pixels, so fx=fy=240/tan(38.5deg)=301.78.
-  // The sim HFOV is ~93deg (not the real camera's 132deg) due to 4:3 render
-  // aspect ratio vs the real camera's 132/77 ratio — MuJoCo limitation.
-  sensor_msgs::msg::CameraInfo ros_msg;
-  ros_msg.header.stamp = stamp(msg);
-  ros_msg.header.frame_id = "front_camera_optical_frame";
-  ros_msg.width = 640;
-  ros_msg.height = 480;
-  ros_msg.distortion_model = "plumb_bob";
-  // Preserve matrix line breaks
-  // clang-format off
-  ros_msg.d = {0.0, 0.0, 0.0, 0.0, 0.0};
-  ros_msg.k = {301.78,    0.0, 319.5,
-    0.0, 301.78, 239.5,
-    0.0,    0.0,   1.0};
-  ros_msg.r = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
-  ros_msg.p = {301.78,    0.0, 319.5, 0.0,
-    0.0, 301.78, 239.5, 0.0,
-    0.0,    0.0,   1.0, 0.0};
-  // clang-format on
-  return ros_msg;
-}
+// CameraInfo intrinsics are no longer hardcoded here — a2_bridge_sim loads them
+// from a2_description/config/camera_info_sim.yaml via camera_info_manager
+// (see SimCameraTopic in sim/ingress.hpp).
 
 inline sensor_msgs::msg::PointCloud2 pointcloud(const sensor_msgs::msg::dds_::PointCloud2_& msg) {
   sensor_msgs::msg::PointCloud2 ros_msg;

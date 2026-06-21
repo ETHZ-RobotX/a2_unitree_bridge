@@ -33,7 +33,7 @@ ros2 launch a2_unitree_bridge robot.launch.py
 | `/state_estimation` | `nav_msgs/Odometry` | 50 Hz | Same as `/odom` (for downstream compatibility) |
 | `/a2/sport_mode` | `std_msgs/UInt8` | 50 Hz | Current sport mode enum value |
 | `/camera/image_raw` | `sensor_msgs/Image` | DDS rate | Front camera RGB decoded from PointCloud2 DDS |
-| `/camera/camera_info` | `sensor_msgs/CameraInfo` | DDS rate | Hardcoded intrinsics, published with each image |
+| `/camera/camera_info` | `sensor_msgs/CameraInfo` | DDS rate | Intrinsics from `a2_description/config/camera_info_sim.yaml`, published with each image |
 | `/front_lidar/points` | `sensor_msgs/PointCloud2` | DDS rate | Raw front lidar scan |
 | `/rear_lidar/points` | `sensor_msgs/PointCloud2` | DDS rate | Raw rear lidar scan |
 | `/lowcmd` (subscribed) | `unitree_go/LowCmd` | — | Receives low-level joint commands and forwards to DDS |
