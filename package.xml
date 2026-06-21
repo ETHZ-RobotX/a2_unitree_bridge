@@ -12,6 +12,7 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>camera_info_manager</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2_ros</depend>
@@ -20,6 +21,8 @@
   <depend>unitree_hg</depend>
   <depend>ament_index_cpp</depend>
   <depend>a2_utils</depend>
+  <!-- a2_bridge_sim resolves package://a2_description/config/camera_info_sim.yaml at runtime -->
+  <exec_depend>a2_description</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

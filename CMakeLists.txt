@@ -21,6 +21,7 @@ find_package(unitree_go REQUIRED)
 find_package(unitree_hg REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(camera_info_manager REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -68,7 +69,7 @@ add_executable(a2_bridge_sim
 )
 target_compile_definitions(a2_bridge_sim PRIVATE A2_MODE_SIM)
 ament_target_dependencies(a2_bridge_sim
-  rclcpp ament_index_cpp unitree_go std_msgs sensor_msgs
+  rclcpp ament_index_cpp unitree_go std_msgs sensor_msgs camera_info_manager
   nav_msgs geometry_msgs tf2_ros tf2_sensor_msgs tf2 a2_interfaces
 )
 apply_unitree_rpath(a2_bridge_sim)
